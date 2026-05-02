@@ -1,12 +1,11 @@
 import streamlit as st
 import pandas as pd
-from sklearn.ensemble import RandomForestRegressor
-
 import joblib
 
-model = joblib.load("budget_forecast_model.pkl")
-
 st.title("💰 AI Budget Planner")
+
+# 👉 грузим модель
+model = joblib.load("budget_forecast_model.pkl")
 
 uploaded_file = st.file_uploader("Загрузите CSV", type=["csv"])
 
@@ -30,19 +29,10 @@ if uploaded_file is not None:
 
     category_df = category_df.dropna()
 
+    # 👉 важно: фичи должны совпадать с обучением
     X = category_df[['month','year','lag_1','lag_2','lag_3']]
-    y = category_df['amount_kzt']
 
-    train_size = int(len(X) * 0.8)
-
-    X_train = X[:train_size]
-    y_train = y[:train_size]
-
-    model = RandomForestRegressor(n_estimators=100)
-    model.fit(X_train, y_train)
-
-    st.success("Модель обучена")
-
+    # прогноз
     last_data = category_df.groupby('category').last().reset_index()
     last_data['month'] = last_data['month'] + 1
 
