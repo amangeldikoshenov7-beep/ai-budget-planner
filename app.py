@@ -98,9 +98,14 @@ if uploaded_file is not None:
         model_ai = genai.GenerativeModel("gemini-2.5-flash")
 
         forecast_text = forecast.to_string(index=False)
-
+        report_date = pd.Timestamp.today().strftime("%d.%m.%Y")
+        
         prompt = f"""
 Ты финансовый аналитик компании.
+
+ВАЖНО:
+- Используй эту дату отчёта: {report_date}
+- Не придумывай другую дату
 
 На основе прогноза расходов по категориям подготовь краткий бизнес-отчёт на русском языке.
 
