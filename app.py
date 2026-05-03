@@ -2,6 +2,7 @@ import streamlit as st
 import pandas as pd
 import numpy as np
 import joblib
+import google.generativeai as genai
 
 st.set_page_config(page_title="AI Budget Planner", page_icon="💰", layout="wide")
 
@@ -89,12 +90,41 @@ if uploaded_file is not None:
     top_category = forecast.iloc[0]["category"]
     top_amount = forecast.iloc[0]["predicted_amount_kzt"]
 
-    st.subheader("AI-анализ")
-    st.write(
-        f"Наибольший прогнозируемый расход ожидается в категории **{top_category}** "
-        f"— примерно **{top_amount:,.0f} ₸**. "
-        "Рекомендуется дополнительно проверить эту категорию при планировании бюджета."
-    )
+    st.subheader("🤖 AI-финансовый аналитик")
+
+    try:
+        genai.configure(api_key=st.secrets["GEMINI_API_KEY"])
+
+        model_ai = genai.GenerativeModel("gemini-1.5-flash")
+
+        forecast_text = forecast.to_string(index=False)
+
+        prompt = f"""
+Ты финансовый аналитик компании.
+
+На основе прогноза расходов по категориям подготовь краткий бизнес-отчёт на русском языке.
+
+Данные прогноза:
+{forecast_text}
+
+Нужно:
+1. Кратко описать общий вывод.
+2. Назвать самые затратные категории.
+3. Указать возможные риски бюджета.
+4. Дать 3 практические рекомендации для оптимизации расходов.
+
+Пиши деловым стилем, понятно и кратко.
+"""
+
+        response = model_ai.generate_content(prompt)
+        st.write(response.text)
+
+    except Exception:
+        st.warning("AI-анализ временно недоступен. Проверьте GEMINI_API_KEY в Streamlit Secrets.")
+        st.write(
+            f"Наибольший прогнозируемый расход ожидается в категории **{top_category}** "
+            f"— примерно **{top_amount:,.0f} ₸**."
+        )
 
 else:
     st.info("Загрузите CSV-файл, чтобы получить прогноз.")
