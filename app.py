@@ -98,17 +98,9 @@ if uploaded_file is not None:
         model_ai = genai.GenerativeModel("gemini-2.5-flash")
 
         forecast_text = forecast.to_string(index=False)
-        report_date = pd.Timestamp.today().strftime("%d.%m.%Y")
-        forecast_period = next_date.strftime("%Y-%m")
 
         prompt = f"""
 Ты финансовый аналитик компании.
-
-ВАЖНО:
-- Не выдумывай даты.
-- Дата отчёта: {report_date}
-- Период прогноза: {forecast_period}
-- Используй только данные, которые переданы ниже.
 
 На основе прогноза расходов по категориям подготовь краткий бизнес-отчёт на русском языке.
 
@@ -122,7 +114,7 @@ if uploaded_file is not None:
 4. Дать 3 практические рекомендации для оптимизации расходов.
 
 Пиши деловым стилем, понятно и кратко.
-""" 
+"""
 
         response = model_ai.generate_content(prompt)
         st.write(response.text)
