@@ -76,10 +76,22 @@ if uploaded_file is not None:
     preds = model.predict(future_X)
 
     last_data["predicted_amount_kzt"] = preds
+    last_data["last_month_amount_kzt"] = last_data["amount_kzt"]
+    last_data["change_pct"] = (
+        (last_data["predicted_amount_kzt"] - last_data["last_month_amount_kzt"])
+        / last_data["last_month_amount_kzt"]
+    )
 
     forecast = last_data[["category", "predicted_amount_kzt"]].sort_values(
         "predicted_amount_kzt", ascending=False
     )
+
+    ai_summary = last_data[[
+        "category",
+        "predicted_amount_kzt",
+        "last_month_amount_kzt",
+        "change_pct"
+    ]].sort_values("predicted_amount_kzt", ascending=False)
 
     st.subheader(f"Прогноз расходов по категориям на {next_date.strftime('%Y-%m')}")
     st.dataframe(forecast)
@@ -87,8 +99,8 @@ if uploaded_file is not None:
     st.subheader("График прогноза")
     st.bar_chart(forecast.set_index("category")["predicted_amount_kzt"])
 
-    top_category = forecast.iloc[0]["category"]
-    top_amount = forecast.iloc[0]["predicted_amount_kzt"]
+    top_category = ai_summary.iloc[0]["category"]
+    top_amount = ai_summary.iloc[0]["predicted_amount_kzt"]
 
     st.subheader("🤖 AI-финансовый аналитик")
 
@@ -97,26 +109,35 @@ if uploaded_file is not None:
 
         model_ai = genai.GenerativeModel("gemini-2.5-flash")
 
-        forecast_text = forecast.to_string(index=False)
         report_date = pd.Timestamp.today().strftime("%d.%m.%Y")
-        
+        total_forecast = ai_summary["predicted_amount_kzt"].sum()
+        top_category = ai_summary.iloc[0]["category"]
+        top_category_amount = ai_summary.iloc[0]["predicted_amount_kzt"]
+        biggest_growth = ai_summary.sort_values("change_pct", ascending=False).iloc[0]
+
+        forecast_text = ai_summary.to_string(index=False)
+
         prompt = f"""
 Ты финансовый аналитик компании.
 
 ВАЖНО:
 - Используй эту дату отчёта: {report_date}
 - Не придумывай другую дату
+- Используй только данные, которые переданы ниже
 
-На основе прогноза расходов по категориям подготовь краткий бизнес-отчёт на русском языке.
+На основе данных ниже подготовь краткий бизнес-отчёт на русском языке.
 
-Данные прогноза:
+Общий прогноз расходов на следующий месяц: {total_forecast:,.0f} KZT.
+Крупнейшая категория расходов: {top_category} — {top_category_amount:,.0f} KZT.
+Самый большой рост: {biggest_growth['category']} — {biggest_growth['change_pct']:.1%}.
+
+Таблица прогноза по категориям:
 {forecast_text}
 
-Нужно:
-1. Кратко описать общий вывод.
-2. Назвать самые затратные категории.
-3. Указать возможные риски бюджета.
-4. Дать 3 практические рекомендации для оптимизации расходов.
+Сформируй:
+1. Краткий вывод
+2. Главные риски
+3. Рекомендации для бюджетирования
 
 Пиши деловым стилем, понятно и кратко.
 """
